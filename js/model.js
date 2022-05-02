@@ -1,7 +1,6 @@
 export class TodoListModel extends EventTarget {
 	constructor() {
 		super();
-		this._batchSave = false;
 		this.list = [];
 		this.load();
 	}
@@ -17,18 +16,8 @@ export class TodoListModel extends EventTarget {
 	}
 
 	save() {
-		if (this._batchSave) return;
-
 		window.localStorage['todos-vanilla-js'] = JSON.stringify(this.list);
 		this.dispatchEvent(new Event('save'));
-	}
-
-	// Aggregate many changes into a single save
-	batchSave(fn) {
-		this._batchSave = true;
-		fn();
-		this._batchSave = false;
-		this.save();
 	}
 
 	// CRUD
@@ -54,15 +43,13 @@ export class TodoListModel extends EventTarget {
 	}
 
 	toggleAll(checked) {
-		this.batchSave(() => {
-			this.list.forEach((item) => (item.checked = checked));
-		});
+		this.list.forEach((item) => (item.checked = checked));
+		this.save();
 	}
 
 	clearCompleted() {
-		this.batchSave(() => {
-			this.list = this.list.filter((item) => !item.checked);
-		});
+		this.list = this.list.filter((item) => !item.checked);
+		this.save();
 	}
 
 	// Filters
