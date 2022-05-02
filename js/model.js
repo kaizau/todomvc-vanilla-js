@@ -54,13 +54,15 @@ export class TodoListModel extends EventTarget {
 	}
 
 	toggleAll(checked) {
-		this.list.forEach((item) => (item.checked = checked));
-		this.save();
+		this.batchSave(() => {
+			this.list.forEach((item) => (item.checked = checked));
+		});
 	}
 
 	clearCompleted() {
-		this.list = this.list.filter((item) => !item.checked);
-		this.save();
+		this.batchSave(() => {
+			this.list = this.list.filter((item) => !item.checked);
+		});
 	}
 
 	// Filters

@@ -19,7 +19,7 @@ class TodoList {
 		this.render();
 	}
 
-	// Call it a controller, if you insist ¯\_(ツ)_/¯
+	// Call it a controller, if you must ¯\_(ツ)_/¯
 	bindEvents() {
 		// Handle adding new todos
 		this.$new.addEventListener('keyup', (evt) => {
@@ -39,13 +39,9 @@ class TodoList {
 		// Handle toggling and removing a single todo
 		this.$list.addEventListener('click', (evt) => {
 			if (evt.target.classList.contains('toggle')) {
-				this.model.batchSave(() => {
-					this.model.toggle(this.getListIndex(evt.target));
-				});
+				this.model.toggle(this.getListIndex(evt.target));
 			} else if (evt.target.classList.contains('destroy')) {
-				this.model.batchSave(() => {
-					this.model.remove(this.getListIndex(evt.target));
-				});
+				this.model.remove(this.getListIndex(evt.target));
 			}
 		});
 
