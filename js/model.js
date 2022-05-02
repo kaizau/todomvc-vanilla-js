@@ -8,24 +8,20 @@ export class TodoListModel {
 
 	load() {
 		try {
-			this.list = JSON.parse(window.localStorage.todos);
+			this.list = JSON.parse(window.localStorage['todos-vanilla-js']);
 		} catch (e) {
-			this.list = [];
-			window.localStorage.todos = '[]';
+			window.localStorage['todos-vanilla-js'] = '[]';
 		}
 	}
 
 	save() {
-		window.localStorage.todos = JSON.stringify(this.list);
+		window.localStorage['todos-vanilla-js'] = JSON.stringify(this.list);
 	}
 
 	// CRUD
 
 	add(text) {
-		this.list.push({
-			text,
-			checked: false,
-		});
+		this.list.push({ text, checked: false });
 		this.save();
 	}
 
