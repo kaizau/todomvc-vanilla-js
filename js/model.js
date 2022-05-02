@@ -1,5 +1,7 @@
-export class TodoListModel {
+export class TodoListModel extends EventTarget {
 	constructor() {
+		super();
+		this._batchSave = false;
 		this.list = [];
 		this.load();
 	}
@@ -15,7 +17,18 @@ export class TodoListModel {
 	}
 
 	save() {
+		if (this._batchSave) return;
+
 		window.localStorage['todos-vanilla-js'] = JSON.stringify(this.list);
+		this.dispatchEvent(new Event('save'));
+	}
+
+	// Aggregate many changes into a single save
+	batchSave(fn) {
+		this._batchSave = true;
+		fn();
+		this._batchSave = false;
+		this.save();
 	}
 
 	// CRUD

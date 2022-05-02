@@ -1,152 +1,150 @@
 import { TodoListModel } from './model.js';
 import { getFilterState, todoTemplate } from './helpers.js';
 
-const model = new TodoListModel();
+class TodoList {
+	constructor() {
+		this.model = new TodoListModel();
 
-const $ = {};
-$.main = document.querySelector('.main');
-$.new = document.querySelector('.new-todo');
-$.toggleAll = document.querySelector('.toggle-all');
-$.list = $.main.querySelector('.todo-list');
-$.footer = document.querySelector('.footer');
-$.count = $.footer.querySelector('.todo-count');
-$.filters = Array.from($.footer.querySelectorAll('.filters a'));
-$.clearCompleted = $.footer.querySelector('.clear-completed');
+		this.$main = document.querySelector('.main');
+		this.$new = document.querySelector('.new-todo');
+		this.$toggleAll = document.querySelector('.toggle-all');
+		this.$list = this.$main.querySelector('.todo-list');
+		this.$footer = document.querySelector('.footer');
+		this.$count = this.$footer.querySelector('.todo-count');
+		this.$filters = Array.from(this.$footer.querySelectorAll('.filters a'));
+		this.$clearCompleted = this.$footer.querySelector('.clear-completed');
 
-init();
-
-//
-// Bind elements
-//
-
-function init() {
-	// Add todo input
-	$.new.addEventListener('keyup', (evt) => {
-		if (evt.key.toLowerCase() === 'enter') {
-			model.add(evt.target.value);
-			render();
-		}
-	});
-
-	// Batch operations
-	$.toggleAll.addEventListener('change', (evt) => {
-		model.toggleAll(evt.target.checked);
-		render();
-	});
-	$.clearCompleted.addEventListener('click', () => {
-		model.clearCompleted();
-		render();
-	});
-
-	// Delegated toggling & removal
-	$.list.addEventListener('click', (evt) => {
-		if (evt.target.classList.contains('toggle')) {
-			model.toggle(getListIndex(evt.target));
-			render();
-		} else if (evt.target.classList.contains('destroy')) {
-			model.remove(getListIndex(evt.target));
-			render();
-		}
-	});
-
-	// Delegated editing
-	$.list.addEventListener('dblclick', (evt) => {
-		editTodo(evt.target.closest('li'));
-	});
-	$.list.addEventListener('keyup', (evt) => {
-		if (evt.key.toLowerCase() === 'enter') {
-			evt.target.blur();
-		}
-	});
-	$.list.addEventListener('focusout', (evt) => {
-		if (evt.target.classList.contains('edit')) {
-			model.update(getListIndex(evt.target), evt.target.value);
-			render();
-		}
-	});
-
-	// Hash routes
-	window.addEventListener('hashchange', () => {
-		updateFilters();
-		render();
-	});
-
-	// Initial render
-	updateFilters();
-	render();
-}
-
-//
-// Main render function
-// - Updates UI
-// - Rebuilds list from model
-//
-
-function render() {
-	if (model.all().length) {
-		$.main.classList.remove('hidden');
-		$.footer.classList.remove('hidden');
-	} else {
-		$.main.classList.add('hidden');
-		$.footer.classList.add('hidden');
+		this.bindEvents();
+		this.updateFilters();
+		this.render();
 	}
-	const activeCount = model.active().length;
-	$.count.textContent = '';
-	$.count.insertAdjacentHTML(
-		'beforeend',
-		`<strong>${activeCount}</strong> item${activeCount === 1 ? '' : 's'} left`
-	);
 
-	$.list.textContent = '';
-	const filterState = getFilterState();
-	model.all().forEach((todo) => {
-		const shouldHide =
-			(filterState === 'active' && todo.checked) ||
-			(filterState === 'completed' && !todo.checked);
-		createTodo(todo.text, todo.checked, shouldHide);
-	});
-}
+	// Call it a controller, if you insist ¯\_(ツ)_/¯
+	bindEvents() {
+		// Handle adding new todos
+		this.$new.addEventListener('keyup', (evt) => {
+			if (evt.key.toLowerCase() === 'enter') {
+				this.model.add(evt.target.value);
+			}
+		});
 
-// Update UI when hash changes
-function updateFilters() {
-	$.filters
-		.find(($el) => $el.classList.contains('selected'))
-		.classList.remove('selected');
-	$.filters
-		.find(($el) => $el.textContent.toLowerCase() === getFilterState())
-		.classList.add('selected');
-}
+		// Handle toggling and removing many todos
+		this.$toggleAll.addEventListener('change', (evt) => {
+			this.model.toggleAll(evt.target.checked);
+		});
+		this.$clearCompleted.addEventListener('click', () => {
+			this.model.clearCompleted();
+		});
 
-//
-// DOM helpers
-//
+		// Handle toggling and removing a single todo
+		this.$list.addEventListener('click', (evt) => {
+			if (evt.target.classList.contains('toggle')) {
+				this.model.batchSave(() => {
+					this.model.toggle(this.getListIndex(evt.target));
+				});
+			} else if (evt.target.classList.contains('destroy')) {
+				this.model.batchSave(() => {
+					this.model.remove(this.getListIndex(evt.target));
+				});
+			}
+		});
 
-function createTodo(text, checked, hidden) {
-	if (!text) return;
+		// Handle editing a todo
+		this.$list.addEventListener('dblclick', (evt) => {
+			this.editTodo(evt.target.closest('li'));
+		});
+		this.$list.addEventListener('keyup', (evt) => {
+			if (evt.key.toLowerCase() === 'enter') {
+				evt.target.blur();
+			}
+		});
+		this.$list.addEventListener('focusout', (evt) => {
+			if (evt.target.classList.contains('edit')) {
+				this.model.update(this.getListIndex(evt.target), evt.target.value);
+			}
+		});
 
-	$.list.insertAdjacentHTML('beforeend', todoTemplate);
-	$.list.lastChild.querySelector('label').textContent = text;
-	if (checked) {
-		$.list.lastChild.classList.add('completed');
-		$.list.lastChild.querySelector('.toggle').checked = true;
+		// Rerender on hash route
+		window.addEventListener('hashchange', () => {
+			this.updateFilters();
+			this.render();
+		});
+
+		// Rerender on model updates
+		this.model.addEventListener('save', () => {
+			this.render();
+		});
 	}
-	if (hidden) {
-		$.list.lastChild.classList.add('hidden');
+
+	// Main render function that updates the UI and refreshes the list
+	render() {
+		if (this.model.all().length) {
+			this.$main.classList.remove('hidden');
+			this.$footer.classList.remove('hidden');
+		} else {
+			this.$main.classList.add('hidden');
+			this.$footer.classList.add('hidden');
+		}
+		const activeCount = this.model.active().length;
+		this.$count.textContent = '';
+		this.$count.insertAdjacentHTML(
+			'beforeend',
+			`<strong>${activeCount}</strong> item${activeCount === 1 ? '' : 's'} left`
+		);
+
+		this.$list.textContent = '';
+		const filterState = getFilterState();
+		this.model.all().forEach((todo) => {
+			const shouldHide =
+				(filterState === 'active' && todo.checked) ||
+				(filterState === 'completed' && !todo.checked);
+			this.createTodo(todo.text, todo.checked, shouldHide);
+		});
 	}
-	$.new.value = '';
+
+	// Filters are separate from render() since only change on hash changes
+	updateFilters() {
+		this.$filters
+			.find(($el) => $el.classList.contains('selected'))
+			.classList.remove('selected');
+		this.$filters
+			.find(($el) => $el.textContent.toLowerCase() === getFilterState())
+			.classList.add('selected');
+	}
+
+	//
+	// DOM helpers
+	//
+
+	createTodo(text, checked, hidden) {
+		if (!text) return;
+
+		this.$list.insertAdjacentHTML('beforeend', todoTemplate);
+		this.$list.lastChild.querySelector('label').textContent = text;
+		if (checked) {
+			this.$list.lastChild.classList.add('completed');
+			this.$list.lastChild.querySelector('.toggle').checked = true;
+		}
+		if (hidden) {
+			this.$list.lastChild.classList.add('hidden');
+		}
+		this.$new.value = '';
+	}
+
+	editTodo($li) {
+		if ($li.classList.contains('editing')) return;
+
+		const $label = $li.querySelector('label');
+		const $edit = $li.querySelector('.edit');
+		$edit.value = $label.textContent;
+		$li.classList.add('editing');
+		$edit.focus();
+	}
+
+	getListIndex($el) {
+		const $li = $el.closest('li');
+		return Array.from(this.$list.children).indexOf($li);
+	}
 }
 
-function editTodo($li) {
-	if ($li.classList.contains('editing')) return;
-
-	const $label = $li.querySelector('label');
-	const $edit = $li.querySelector('.edit');
-	$edit.value = $label.textContent;
-	$li.classList.add('editing');
-	$edit.focus();
-}
-
-function getListIndex($el) {
-	const $li = $el.closest('li');
-	return Array.from($.list.children).indexOf($li);
-}
+new TodoList();
